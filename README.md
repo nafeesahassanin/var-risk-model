@@ -1,4 +1,4 @@
-# Value at Risk (VaR) Model — Apple Inc. (AAPL)
+# Value at Risk (VaR) Model — AAPL & TSLA
 
 ## Overview
 This project builds a Value at Risk (VaR) model in Python to estimate 
@@ -28,22 +28,22 @@ parameterized by Apple's real mean return (0.06%) and standard deviation
 
 ## Results
 
-| Method | Daily VaR | Dollar Amount (95% confidence) |
-|---|---|---
-| Historical Simulation | -2.87% | $287.39 |
-| Monte Carlo Simulation | -2.92% | $291.54 |
-| Difference | 0.05% | $4.15 |
+| Metric | AAPL | TSLA |
+|---|---|---|
+| Daily Volatility (Std Dev) | 1.80% | 3.89% |
+| Historical VaR (95%) | $287.39 | $611.51 |
+| Monte Carlo VaR (95%) | $291.54 | $635.79 |
+| Historical vs MC Gap | $4.15 | $24.28 |
 
 ## Key Insight
-The two methods produced nearly identical estimates — a difference of 
-only $4.15 on a $10,000 portfolio — suggesting the normal distribution 
-is a reasonable approximation of Apple's return behavior over this period. 
-Notably, Monte Carlo VaR was slightly higher than Historical VaR, indicating 
-the normal distribution marginally overestimated tail risk compared to what 
-actually occurred. This is the reverse of the fat tail phenomenon commonly 
-observed in equity returns, where extreme losses occur more frequently than 
-a normal distribution predicts — a finding worth investigating across 
-different stocks and time periods.
+Comparing Apple and Tesla reveals that the gap between Historical and 
+Monte Carlo VaR estimates scales with volatility — Tesla's gap is roughly 
+6x larger than Apple's, despite its volatility being only about 2x higher. 
+This suggests the normal distribution assumption underlying Monte Carlo 
+simulation breaks down more severely for higher-volatility stocks, whose 
+actual return distributions likely exhibit fatter tails than a standard 
+normal distribution predicts.
+
 
 ## Limitations
 - VaR does not predict the magnitude of losses beyond the threshold
