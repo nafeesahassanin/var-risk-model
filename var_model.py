@@ -39,9 +39,38 @@ def calculate_var(ticker, start_date="2022-01-01", end_date="2026-01-01",
     }
     return results
 
+def backtest_var(results, confidence_level=0.95):
+    """
+    Backtests a VaR model by checking how often actual losses exceed the predicted VaR threshold.
+    """
+    returns = results["returns"]
+    historical_var = results["historical_var"]
+    # Count how many days had a loss worse than the VaR threshold
+    breaches = (returns < historical_var).sum()
+    total_days = len(returns)
+    # What we observed
+    actual_breach_rate = (breaches / total_days)*100
+    # What we expected
+    expected_breach_rate = (1 - confidence_level)*100
+
+    print(f"\nBACKTEST: {results['ticker']}")
+    print(f"Total trading days: {total_days}")
+    print(f"VaR breaches: {breaches.values[0]}")
+    print(f"Expected breach rate: {expected_breach_rate:.1f}%")
+    print(f"Actual breach rate: {actual_breach_rate.values[0]:.2f}%")
+
+    if actual_breach_rate.values[0] > expected_breach_rate * 1.2:
+        print("Result: Model UNDERESTIMATES risk (breaches happened more than expected)")
+    elif actual_breach_rate.values[0]< expected_breach_rate * 0.8:
+        print("Results: Model OVERESTIMATES risk (breaches happened less than expected)")
+    else: 
+        print("Result: Model is well-calibrated (breach rate close to expected)")
+
 # Call the function for the stocks
 aapl_results = calculate_var("AAPL")
 tsla_results = calculate_var("TSLA")
+backtest_var(aapl_results)
+backtest_var(tsla_results)
 
 # Print the results
 print("\tRISK COMPARISON: AAPL vs TSLA")
@@ -61,8 +90,8 @@ fig.suptitle("Value at Risk Comparison: AAPL vs TSLA (2022-2026)",
 
 # AAPL Returns Distribution Chart
 ax1.hist(aapl_results["returns"], bins=50, color="steelblue", alpha=0.7, edgecolor="white", linewidth=0.5)
-ax1.axvline(x=aapl_results["historical_var"], color="red", linewidth=2, linestyle="--", label=f"Historical VaR: {aapl_results['historical_var_dollar']*100:.2f}%")
-ax1.axvline(x=aapl_results["monte_carlo_var"], color="orange", linewidth=2, linestyle="--", label=f"Monte Carlo VaR: {aapl_results['monte_carlo_var_dollar']*100:.2f}%")
+ax1.axvline(x=aapl_results["historical_var"], color="red", linewidth=2, linestyle="--", label=f"Historical VaR: {aapl_results['historical_var']*100:.2f}%")
+ax1.axvline(x=aapl_results["monte_carlo_var"], color="orange", linewidth=2, linestyle="--", label=f"Monte Carlo VaR: {aapl_results['monte_carlo_var']*100:.2f}%")
 ax1.set_title("AAPL Returns Distribution", fontsize=12, fontweight="bold")
 ax1.set_xlabel("Daily Returns", fontsize=10)
 ax1.set_ylabel("Frequency(Number of Days)", fontsize=10)
@@ -70,8 +99,8 @@ ax1.legend(fontsize=9)
 
 # TSLA Returns Distribution Chart
 ax2.hist(tsla_results["returns"], bins=50, color="seagreen", alpha=0.7, edgecolor="white", linewidth=0.5)
-ax2.axvline(x=tsla_results["historical_var"], color="red", linewidth=2, linestyle="--", label=f"Historical VaR: {tsla_results['historical_var_dollar']*100:.2f}%")
-ax2.axvline(x=tsla_results["monte_carlo_var"], color="orange", linewidth=2, linestyle="--", label=f"Monte Carlo VaR: {tsla_results['monte_carlo_var_dollar']*100:.2f}%")
+ax2.axvline(x=tsla_results["historical_var"], color="red", linewidth=2, linestyle="--", label=f"Historical VaR: {tsla_results['historical_var']*100:.2f}%")
+ax2.axvline(x=tsla_results["monte_carlo_var"], color="orange", linewidth=2, linestyle="--", label=f"Monte Carlo VaR: {tsla_results['monte_carlo_var']*100:.2f}%")
 ax2.set_title("TSLA Returns Distribution", fontsize=12, fontweight="bold")
 ax2.set_xlabel("Daily Returns", fontsize=10)
 ax2.set_ylabel("Frequency(Number of Days)", fontsize=10)
