@@ -29,6 +29,13 @@ parameterized by each stock's real historical mean return and standard
 deviation. The 5th percentile of the simulated distribution becomes the 
 risk estimate. This method assumes returns are normally distributed.
 
+### 3. Backtesting
+Tests whether each model's predictions held up against reality — 
+specifically, whether actual losses exceeded the VaR threshold on 
+approximately 5% of days, as the 95% confidence level predicts. This is 
+the same validation process real risk management teams use to confirm a 
+model is well-calibrated rather than systematically over- or 
+under-estimating risk.
 
 ## Results
 
@@ -41,6 +48,16 @@ risk estimate. This method assumes returns are normally distributed.
 | Monte Carlo VaR (95%) | $291.54 | $635.79 |
 | Historical vs. Monte Carlo Gap | $4.15 | $24.28 |
 
+### Backtest Results
+
+| Metric | AAPL | TSLA |
+|---|---|---|
+| Total Trading Days | 1,002 | 1,002 |
+| VaR Breaches (Actual) | 51 | 51 |
+| Expected Breach Rate | 5.0% | 5.0% |
+| Actual Breach Rate | 5.09% | 5.09% |
+| Calibration Result | Well-calibrated | Well-calibrated |
+
 ## Key Insights
 
 **Volatility drives the gap between methods.** Tesla's volatility 
@@ -52,6 +69,13 @@ higher-volatility stocks — their actual return distributions likely
 exhibit fatter tails than a standard normal distribution predicts, a 
 well-documented phenomenon in equity markets.
 
+**Historical VaR backtests are well-calibrated by construction.** Both 
+stocks showed an actual breach rate (5.09%) almost exactly matching the 
+expected 5%. This is expected for Historical VaR specifically, since it 
+is defined directly as the 5th percentile of the same dataset being 
+tested — the more meaningful backtest would apply this same process to 
+the Monte Carlo estimates, or test the model out-of-sample on data it 
+wasn't built from, which is a natural next extension of this project.
 
 ## Limitations
 - VaR estimates the threshold of loss but does not predict the magnitude 
@@ -59,10 +83,21 @@ well-documented phenomenon in equity markets.
   Expected Shortfall, addresses this)
 - The Monte Carlo model assumes normally distributed returns, which may 
   underestimate tail risk for volatile or crisis-prone assets
+- The current backtest validates Historical VaR against its own sample 
+  data; a more rigorous test would use out-of-sample data or backtest 
+  the Monte Carlo estimates directly
 - Historical VaR is limited by the specific market conditions present in 
   the sample period and may not generalize to future regimes
 - This model treats each stock independently and does not yet account 
   for correlation effects in a multi-asset portfolio
+
+## Future Extensions
+- Backtest the Monte Carlo VaR estimates directly, and/or test on 
+  out-of-sample data the model wasn't built from
+- Incorporate a Student's t-distribution to better capture fat tails
+- Extend to a multi-asset portfolio using a covariance matrix to model 
+  diversification effects
+- Implement rolling-window volatility to capture time-varying risk
 
 ## Technologies Used
 - Python 3.14
