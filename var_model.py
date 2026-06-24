@@ -115,6 +115,51 @@ def out_of_sample_backtest(ticker, train_start="2022-01-01", train_end="2024-06-
     else: 
         print("Result: Model remains well-calibrated out-of-sample")
 
+def stress_test(results, portfolio_value=10000):
+    """
+    Applies historical stress scenarios to estimate portfolio losses
+    during extreme market events, comparing them to VaR estimates
+    """
+    ticker = results["ticker"]
+    historical_var_dollar = results["historical_var_dollar"]
+    returns = results["returns"]
+
+    worst_day_return = returns.min().values[0]
+    worst_day_date = returns.idxmin().values[0]
+
+    # Define stress Scenario 
+    scenarios = {
+        f"Worst Single Day ({ticker} actual data)": worst_day_return,
+        "Covid-19 Crash (Mar 16, 2020)": -0.12,
+        "2008 Financial Crisis (Oct 15, 2008)": -0.09,
+        "Black Monday 1987 (Oct 19, 1987)": -0.226
+    }
+
+    print(f"\n\tSTRESS TEST: {ticker}")
+    print(f"Portfolio Value: ${portfolio_value:,.2f}")
+    print(f"Historical VaR (95%): ${historical_var_dollar:,.2f}")
+    print(f"Actual worst day in dataset: "
+          f"{worst_day_return*100:.2f}% ({worst_day_date})")
+    print(f"\n{'Scenario':<35}{'Shock':<10}{'Loss($)':<12}{'Var Exceeded By':<15}")
+    print("-"*77)
+
+    for scenario_name, shock in scenarios.items():
+        stress_loss = portfolio_value*abs(shock)
+        var_excess = stress_loss - historical_var_dollar
+        var_excess_pct = (stress_loss/ historical_var_dollar - 1)*100
+
+        print(f"{scenario_name:<35}{str(round(shock*100, 1)) + "%":<10}"
+              f"${stress_loss:<11,.2f}"
+              f"${var_excess:,.2f}({var_excess_pct:.0f}% worse)")
+
+    # Print the insights
+    print(f"\nKey insight: Under these historical scenarios, losses range from")
+    print(f"{(portfolio_value * 0.08 / historical_var_dollar):.1f}x to "
+          f"{(portfolio_value * 0.226/ historical_var_dollar):.1f}x larger")
+    print(f"than the 95% VaR estimate of ${historical_var_dollar:,.2f}")
+    print(f"This illustrates why VaR alone is insufficient for tail risk management.")
+
+
 # Call the function for the stocks
 aapl_results = calculate_var("AAPL")
 tsla_results = calculate_var("TSLA")
@@ -122,6 +167,8 @@ backtest_var(aapl_results)
 backtest_var(tsla_results)
 out_of_sample_backtest("AAPL")
 out_of_sample_backtest("TSLA")
+stress_test(aapl_results)
+stress_test(tsla_results)
 
 # Print the results
 print("\tRISK COMPARISON: AAPL vs TSLA")
