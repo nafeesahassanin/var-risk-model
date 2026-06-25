@@ -50,6 +50,43 @@ into two distinct periods — a training window (2022–2024) used to
 calculate the VaR threshold, and a testing window (2024–2026) used to 
 validate it against data the model has never seen. 
 
+### Stress Test Results
+
+Stress testing applies historical crisis scenarios to estimate losses 
+during extreme market events, directly comparing them to VaR estimates 
+to quantify what VaR alone misses.
+
+#### AAPL Stress Test (Historical VaR baseline: $287.39)
+| Scenario | Shock | Loss ($) | vs. VaR |
+|---|---|---|---|
+| Worst Single Day (Apr 3, 2025) | -9.2% | $924.56 | 222% worse |
+| COVID-19 Crash (Mar 16, 2020) | -12.0% | $1,200.00 | 318% worse |
+| 2008 Financial Crisis (Oct 15, 2008) | -9.0% | $900.00 | 213% worse |
+| Black Monday (Oct 19, 1987) | -22.6% | $2,260.00 | 686% worse |
+
+#### TSLA Stress Test (Historical VaR baseline: $611.51)
+| Scenario | Shock | Loss ($) | vs. VaR |
+|---|---|---|---|
+| Worst Single Day (Mar 10, 2025) | -15.4% | $1,542.62 | 152% worse |
+| COVID-19 Crash (Mar 16, 2020) | -12.0% | $1,200.00 | 96% worse |
+| 2008 Financial Crisis (Oct 15, 2008) | -9.0% | $900.00 | 47% worse |
+| Black Monday (Oct 19, 1987) | -22.6% | $2,260.00 | 270% worse |
+
+#### Key Stress Test Insights
+
+**VaR dramatically underestimates tail risk for both stocks.**
+For Apple, crisis scenarios produced losses ranging from 2.8x to 7.9x 
+larger than the 95% VaR estimate. For Tesla, the range was 1.3x to 3.7x 
+larger — proportionally smaller because Tesla's already-elevated VaR 
+reflects its high baseline volatility.
+
+**For highly volatile stocks, VaR's proportional underestimation of 
+crisis risk is smaller.** Tesla's COVID crash scenario ($1,200) represents 
+only 1.96x its VaR estimate ($611), while Apple's COVID scenario ($1,200) 
+represents 4.18x its VaR estimate ($287). A higher baseline VaR naturally 
+absorbs more of the gap between normal bad days and crisis scenarios — 
+though both stocks still show VaR falling far short of true tail risk.
+
 ## Results
 
 ### Three-Method VaR Comparison
