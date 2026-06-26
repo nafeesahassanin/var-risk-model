@@ -159,107 +159,170 @@ def stress_test(results, portfolio_value=10000):
     print(f"than the 95% VaR estimate of ${historical_var_dollar:,.2f}")
     print(f"This illustrates why VaR alone is insufficient for tail risk management.")
 
-def advanced_visualizations(aapl_results, tsla_results, jpm_results):
+def plot_var_comparion(aapl_results, tsla_results, jpm_results):
     """
-    Create three additional visualizations:
-    1. Rolling volatility comparison over time
-    2. Correlation heatmap between AAPL and TSLA
-    3. Return distribution plots with normal curve overlay
+    Three histograms showing return distributions with VaR lines for each stock
     """
-    aapl_returns= aapl_results["returns"]
-    tsla_returns= tsla_results["returns"]
-    jpm_returns = jpm_results["returns"]
+    fig, (ax1,ax2,ax3) = plt.subplots(1,3, figsize=(18,6))
+    fig.suptitle("Return Distributions and VaR Thresholds (2022-2026)", 
+                 fontsize=13, fontweight="bold")
+    stocks= [
+        (ax1, aapl_results, "steelblue", "AAPL"),
+        (ax2, tsla_results, "seagreen", "TSLA"),
+        (ax3, jpm_results, "darkorange", "JPM")
+    ]
 
-    fig, axes = plt.subplots(2,2, figsize=(16,12))
-    fig.suptitle ("Advanced Risk Analysis -AAPL vs TSLA vs JPM (2022-2026)",
-                  fontsize=12, fontweight="bold")
-    
-    # Rolling Volatility Chart
-    ax1= axes[0,0]
-    aapl_rolling_vol = aapl_returns.rolling(window=30).std()*np.sqrt(252)
-    tsla_rolling_vol = tsla_returns.rolling(window=30).std()*np.sqrt(252)
-    jpm_rolling_vol = jpm_returns.rolling(window=30).std()*np.sqrt(252)
+    for ax, results, color, ticker in stocks:
+        ax.hist(results["returns"], bins=50, color=color, alpha=0.6, edgecolor="white", linewidth= 0.5,
+                density=True, label="Actual Returns")
+        x_range= np.linspace(results["returns"].min().values[0],
+                             results["returns"].max().values[0], 300)
+        normal_curve = stats.norm.pdf(x_range, results["mean_return"], results["std_return"])
+        ax.plot(x_range, normal_curve, color="red", linewidth=2,
+                label="Normal Distribution")
+        ax.axvline(x=results["historical_var"], color="darkred", linewidth=1.5, linestyle="-.",
+                   label=f"Historical VaR: "
+                   f"{abs(results['historical_var'])*100:.2f}%")
+        ax.axvline(x=results["monte_carlo_var"], color="orange", linewidth=1.5, linestyle="-.",
+                   label=f"Monte Carlo VaR: "
+                   f"{abs(results['monte_carlo_var'])*100:.2f}%")
+        ax.axvline(x=results["parametric_var"], color="purple", linewidth=1.5, linestyle="-.",
+                   label=f"Parametric VaR: "
+                   f"{abs(results['parametric_var'])*100:.2f}%")
+        
+        ax.set_title(f"{ticker} Return Distribution", fontsize=11, fontweight="bold")
+        ax.set_xlabel("Daily Return", fontsize=9)
+        ax.set_ylabel("Density", fontsize=9)
+        ax.legend(fontsize=7)
+        ax.tick_params(axis="both", labelsize=7) 
 
-    ax1.plot(aapl_rolling_vol.index, aapl_rolling_vol.values, color="steelblue", linewidth=1.2, label="AAPL")
-    ax1.plot(tsla_rolling_vol.index, tsla_rolling_vol.values, color="seagreen", linewidth=1.2, label="TSLA")
-    ax1.plot(jpm_rolling_vol.index, jpm_rolling_vol.values, color="darkorange", linewidth=1.2, label="JPM")
-    ax1.set_title("Rolling 30-Day Annualized Volatility", fontsize=9, fontweight="bold")
-    ax1.set_xlabel("Date", fontsize=7, labelpad=10)
-    ax1.legend(fontsize=7)
-    ax1.tick_params(axis="x", rotation=45, labelsize=5)
-    ax1.tick_params(axis="y", labelsize=7)
+    plt.tight_layout(rect=[0,0,1,0.95])
+    plt.savefig("return_distributions.png", dpi=150, bbox_inches="tight")
+    plt.show()
+    print("Saved: return_distributions.png")
 
-    # Correlation Heatmap Chart
-    ax2= axes[0,1]
-    combined_returns = pd.DataFrame({
-        "AAPL": aapl_returns.squeeze(),
-        "TSLA": tsla_returns.squeeze(),
-        "JPM": jpm_returns.squeeze()
-        })
-    
-    corr_matrix = combined_returns.corr()
-    aapl_tsla_corr = corr_matrix.loc["AAPL", "TSLA"]
-    aapl_jpm_corr = corr_matrix.loc["AAPL", "JPM"]
-    tsla_jpm_corr = corr_matrix.loc["TSLA", "JPM"]
+def plot_rolling_volatility(aapl_results, tsla_results, jpm_results):
+    """
+    Line chart showing how each stock's volatitlity changed over time
+    """       
+    fig, ax = plt.subplots(figsize=(12,5))
+    aapl_vol = aapl_results["returns"].rolling(window=30).std()*np.sqrt(252)
+    tsla_vol = tsla_results["returns"].rolling(window=30).std()*np.sqrt(252)
+    jpm_vol = jpm_results["returns"].rolling(window=30).std()*np.sqrt(252)
 
-    ax2.scatter(combined_returns["AAPL"], combined_returns["TSLA"],
-                alpha=0.3, color="steelblue", s=8,
-                label=f"AAPL vs TSLA (r={aapl_tsla_corr:.3f})")
-    ax2.scatter(combined_returns["AAPL"], combined_returns["JPM"],
-                alpha=0.3, color="darkorange", s=8,
-                label=f"TSLA vs JPM (r={aapl_jpm_corr:.3f})")
-    ax2.scatter(combined_returns["TSLA"], combined_returns["JPM"],
-                alpha=0.3, color="seagreen", s=8,
-                label=f"TSLA vs JPM (r={tsla_jpm_corr:.3f})")
+    ax.plot(aapl_vol.index, aapl_vol.values,
+            color="steelblue", linewidth=1.2, label="AAPL")
+    ax.plot(tsla_vol.index, tsla_vol.values,
+            color="seagreen", linewidth=1.2, label="TSLA")
+    ax.plot(jpm_vol.index, jpm_vol.values,
+            color="darkorange", linewidth=1.2, label="JPM")
     
-    ax2.axhline(y=0, color="gray", linewidth=0.5, linestyle="-")
-    ax2.axvline(x=0, color="gray", linewidth=0.5, linestyle="-")
-    ax2.set_title("Pairwise Return Correlations", fontsize=9, fontweight="bold")
-    ax2.set_xlabel("Return", fontsize=7)
-    ax2.set_ylabel("Return", fontsize=7)
-    ax2.legend(fontsize=7)
-    ax2.tick_params(axis="both", labelsize=7)
-    
-    # APPL Return Distribution with Normal Curve Chart
-    ax3= axes[1,0]
-    ax3.hist(aapl_returns, bins=50, color="steelblue", alpha=0.6, 
-             edgecolor="white", linewidth=0.5, density=True, label = "Actual Returns")
-    x_range_aapl = np.linspace(aapl_returns.min().values[0], aapl_returns.max().values[0], 300)
-    normal_curve_aapl = stats.norm.pdf(x_range_aapl, aapl_results["mean_return"], aapl_results["std_return"])
-    ax3.plot(x_range_aapl, normal_curve_aapl, color="red", linewidth=2, label="Normal Distribution")
-    ax3.axvline(x=aapl_results["historical_var"], color="darkred", 
-                linewidth=1.5, linestyle= "-.", label= f"VaR: {aapl_results["historical_var"]*100:.2f}")
-    ax3.set_title("AAPL Return Distribution vs Normal Curve",
-                  fontsize=9, fontweight="bold")
-    ax3.set_xlabel("Daily Return", fontsize=7)
-    ax3.set_ylabel("Density", fontsize=7)
-    ax3.legend(fontsize=7)
-    ax3.tick_params(axis="both", labelsize=7)
-    
-    # TSLA Return Distribution with Normal Curve Chart
-    ax4= axes[1,1]
-    ax4.hist(tsla_returns, bins=50, color="seagreen", alpha=0.6, 
-             edgecolor="white", linewidth=0.5, density=True, label = "Actual Returns")
-    x_range_tsla = np.linspace(tsla_returns.min().values[0], tsla_returns.max().values[0], 300)
-    normal_curve_tsla = stats.norm.pdf(x_range_tsla, tsla_results["mean_return"], tsla_results["std_return"])
-    ax4.plot(x_range_tsla, normal_curve_tsla, color="red", linewidth=2, label="Normal Distribution")
-    ax4.axvline(x=tsla_results["historical_var"], color="darkred", 
-                linewidth=1.5, linestyle= "-.", label= f"VaR: {tsla_results["historical_var"]*100:.2f}")
-    ax4.set_title("TSLA Return Distribution vs Normal Curve",
-                  fontsize=9, fontweight="bold")
-    ax4.set_xlabel("Daily Return", fontsize=7)
-    ax4.set_ylabel("Density", fontsize=7)
-    ax4.legend(fontsize=7)
-    ax4.tick_params(axis="both", labelsize=7)
+    ax.set_title("Rolling 30-Day Annualized Volatitlity (2022-2026)",
+                 fontsize=13, fontweight="bold")
+    ax.set_xlabel("Date", fontsize=10)
+    ax.set_ylabel("Annualized Volatility", fontsize=10)
+    ax.tick_params(axis="x", rotation=45, labelsize=8)
+    ax.tick_params(axis="y", labelsize=8)
 
     plt.tight_layout()
-    plt.savefig("advanced_risk_analysis.png", dpi=150, bbox_inches="tight")
-    print("\nAdvanced visualization saved as advanced_risk_analysis.png")
-    print(f"\nPairwise Correlation: ")
-    print(f"AAPL vs TSLA: {aapl_tsla_corr:.3f}")
-    print(f"AAPL vs JPM: {aapl_jpm_corr:.3f}")
-    print(f"TSLA vs JPM: {tsla_jpm_corr:.3f}")
+    plt.savefig("rolling_volatility.png", dpi=150, bbox_inches="tight")
     plt.show()
+    print("Saved: rolling_volatility.png")
+
+def plot_correlation_scatter(aapl_results, tsla_results, jpm_results):
+    """
+    Scatter plot showing pairwise return correlations between all three stocks
+    """
+    fig, ax = plt.subplots(figsize=(9,7))
+
+    combined = pd.DataFrame({
+        "AAPL": aapl_results["returns"].squeeze(),
+        "TSLA": tsla_results["returns"].squeeze(),
+        "JPM": jpm_results["returns"].squeeze()
+    })
+
+    corr = combined.corr()
+    aapl_tsla = corr.loc["AAPL", "TSLA"]
+    aapl_jpm = corr.loc["AAPL", "JPM"]
+    tsla_jpm = corr.loc["TSLA", "JPM"]
+
+    ax.scatter(combined["AAPL"], combined["TSLA"],
+               alpha=0.3, color="steelblue", s=8,
+               label=f"AAPL vs TSLA (r={aapl_tsla:.3f})")
+    ax.scatter(combined["AAPL"], combined["JPM"],
+               alpha=0.3, color="darkorange", s=8,
+               label=f"AAPL vs JPM (r={aapl_jpm:.3f})")
+    ax.scatter(combined["TSLA"], combined["JPM"],
+               alpha=0.3, color="seagreen", s=8,
+               label=f"TSLA vs JPM (r={tsla_jpm:.3f})")
+    ax.axhline(y=0, color="gray", linewidth=0.5)
+    ax.axvline(x=0, color="gray", linewidth=0.5)
+    ax.set_title("Pairwise Return Correlations - AAPL, TSLA, JPM (2022-2026)",
+                 fontsize=13, fontweight="bold")
+    ax.set_xlabel("Return (first stock in pair)", fontsize=10)
+    ax.set_ylabel("Return (second stock in pair)", fontsize=10)
+    ax.legend(fontsize=10)
+    ax.tick_params(axis="both", labelsize=8)
+    
+    plt.tight_layout()
+    plt.savefig("correlation_scaater.png", dpi=150, bbox_inches="tight")
+    plt.show()
+    print("Saved: correlation_scatter.png")
+
+def plot_var_bar_comparison(aapl_results, tsla_results, jpm_results):
+    """
+    Bar chart comparing all three VaR methods side by side for each stock
+    """
+    fig, ax = plt.subplots(figsize=(10,6))
+    
+    tickers = ["AAPL", "TSLA", "JPM"]
+    historical=[
+        aapl_results["historical_var_dollar"],
+        tsla_results["historical_var_dollar"],
+        jpm_results["historical_var_dollar"]
+    ]
+    monte_carlo=[
+        aapl_results["monte_carlo_var_dollar"],
+        tsla_results["monte_carlo_var_dollar"],
+        jpm_results["monte_carlo_var_dollar"]
+    ]
+    parametric =[
+        aapl_results["parametric_var_dollar"],
+        tsla_results["parametric_var_dollar"],
+        jpm_results["parametric_var_dollar"]
+    ]
+
+    x = np.arange(len(tickers))
+    width=0.25
+    ax.bar(x - width, historical, width, label="Historical VaR",
+           color="steelblue", alpha=0.8)
+    ax.bar(x, width, monte_carlo, width, label="Monte Carlo VaR",
+           color="seagreen", alpha=0.8)
+    ax.bar(x + width, parametric, width, label="Parametric VaR",
+           color="darkorange", alpha=0.8)
+    
+    for i, (h,m,p) in enumerate(zip(historical, monte_carlo, parametric)):
+        ax.text(i - width, h + 5, f"${h:.0f}",
+                ha="center", va="bottom", fontsize=7)
+        ax.text(i, m + 5, f"${m:.0f}",
+                ha="center", va="bottom", fontsize=7)
+        ax.text(i + width, p + 5, f"${p:.0f}",
+                ha="center", va="bottom", fontsize=7)
+    
+    ax.set_title("VaR Comparison by Method - $10,000 Portfolio (95% Confidence)",
+                 fontsize=13, fontweight="bold")
+    ax.set_xlabel("Stock", fontsize=10)
+    ax.set_ylabel("Daily VaR ($)", fontsize=10)
+    ax.set_xticks(x)
+    ax.set_xticklabels(tickers, fontsize=10)
+    ax.legend(fontsize=10)
+    ax.tick_params(axis="y", labelsize=8)
+    
+    plt.tight_layout()
+    plt.savefig("var_bar_comparison.png", dpi=150, bbox_inches="tight")
+    plt.show()
+    print("Saved: var_bar_comparison.png")
+
 
 # Call the function for the stocks
 aapl_results = calculate_var("AAPL")
@@ -274,7 +337,10 @@ out_of_sample_backtest("JPM")
 stress_test(aapl_results)
 stress_test(tsla_results)
 stress_test(jpm_results)
-advanced_visualizations(aapl_results, tsla_results,jpm_results)
+plot_var_comparion(aapl_results, tsla_results, jpm_results)
+plot_rolling_volatility(aapl_results, tsla_results, jpm_results)
+plot_correlation_scatter(aapl_results, tsla_results, jpm_results)
+plot_var_bar_comparison(aapl_results, tsla_results, jpm_results)
 
 # Print the results
 print("\tRISK COMPARISON: AAPL vs TSLA vs JPM")
