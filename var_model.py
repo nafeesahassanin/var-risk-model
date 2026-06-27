@@ -278,7 +278,7 @@ def plot_correlation_scatter(aapl_results, tsla_results, jpm_results):
     ax.tick_params(axis="both", labelsize=8)
     
     plt.tight_layout()
-    plt.savefig("correlation_scaater.png", dpi=150, bbox_inches="tight")
+    plt.savefig("correlation_scatter.png", dpi=150, bbox_inches="tight")
     plt.show()
     print("Saved: correlation_scatter.png")
 
@@ -384,7 +384,7 @@ def plot_distribution_comparison(aapl_results, tsla_results, jpm_results):
     plt.tight_layout(rect=[0,0,1,0.95])
     plt.savefig("distribution_comparison.png", dpi=150, bbox_inches ="tight")
     plt.show()
-    print("Saved: distribution_compairson.png")
+    print("Saved: distribution_comparison.png")
         
 
 
