@@ -286,52 +286,46 @@ def plot_var_bar_comparison(aapl_results, tsla_results, jpm_results):
     """
     Bar chart comparing all three VaR methods side by side for each stock
     """
-    fig, ax = plt.subplots(figsize=(10,6))
-    
-    tickers = ["AAPL", "TSLA", "JPM"]
-    historical=[
-        aapl_results["historical_var_dollar"],
-        tsla_results["historical_var_dollar"],
-        jpm_results["historical_var_dollar"]
-    ]
-    monte_carlo=[
-        aapl_results["monte_carlo_var_dollar"],
-        tsla_results["monte_carlo_var_dollar"],
-        jpm_results["monte_carlo_var_dollar"]
-    ]
-    parametric =[
-        aapl_results["parametric_var_dollar"],
-        tsla_results["parametric_var_dollar"],
-        jpm_results["parametric_var_dollar"]
-    ]
-
-    x = np.arange(len(tickers))
-    width=0.25
-    ax.bar(x - width, historical, width, label="Historical VaR",
-           color="steelblue", alpha=0.8)
-    ax.bar(x, width, monte_carlo, width, label="Monte Carlo VaR",
-           color="seagreen", alpha=0.8)
-    ax.bar(x + width, parametric, width, label="Parametric VaR",
-           color="darkorange", alpha=0.8)
-    
-    for i, (h,m,p) in enumerate(zip(historical, monte_carlo, parametric)):
-        ax.text(i - width, h + 5, f"${h:.0f}",
-                ha="center", va="bottom", fontsize=7)
-        ax.text(i, m + 5, f"${m:.0f}",
-                ha="center", va="bottom", fontsize=7)
-        ax.text(i + width, p + 5, f"${p:.0f}",
-                ha="center", va="bottom", fontsize=7)
-    
-    ax.set_title("VaR Comparison by Method - $10,000 Portfolio (95% Confidence)",
+    fig, axes = plt.subplots(1,3,figsize=(16,6))
+    fig.suptitle("VaR Comparison by Method - $10,000 Portfolio (95% Confidene)",
                  fontsize=13, fontweight="bold")
-    ax.set_xlabel("Stock", fontsize=10)
-    ax.set_ylabel("Daily VaR ($)", fontsize=10)
-    ax.set_xticks(x)
-    ax.set_xticklabels(tickers, fontsize=10)
-    ax.legend(fontsize=10)
-    ax.tick_params(axis="y", labelsize=8)
     
-    plt.tight_layout()
+    stocks = [
+        (axes[0], aapl_results, "AAPL"),
+        (axes[1], tsla_results, "TSLA"),
+        (axes[2], jpm_results, "JPM")
+    ]
+    methods = ["Historical", "Monte Carlo\n(Normal)", "Parametric", "Monte Carlo\n(T-Dist)"]
+    colors = ["steelblue", "seagreen", "darkorange", "purple"]
+
+    for ax, results, ticker in stocks:
+        values = [
+            results["historical_var_dollar"],
+            results["monte_carlo_var_dollar"],
+            results["parametric_var_dollar"],
+            results["t_dist_var_dollar"]
+        ]
+    
+        x = np.arange(len(methods))
+        bars = ax.bar(x, values, width=0.6, color=colors, alpha=0.8,
+                    edgecolor="white", linewidth=0.5)
+        
+        for bar, value in zip(bars, values):
+            ax.text(bar.get_x() + bar.get_width()/2,
+                    bar.get_height()*0.5,
+                    f"${value:.0f}",
+                    ha="center", va="center",
+                    fontsize=8, fontweight="bold", color="white")
+        
+        ax.set_title(ticker, fontsize=12, fontweight="bold")
+        ax.set_xticks(x)
+        ax.set_xticklabels(methods, fontsize=8)
+        ax.set_ylabel("Daily VaR ($)", fontsize=9)
+        ax.tick_params(axis="y", labelsize=8)
+        ax.yaxis.grid(True, linestyle="--", alpha=0.5)
+        ax.set_axisbelow(True)
+
+    plt.tight_layout(rect=[0,0,1,0.95])
     plt.savefig("var_bar_comparison.png", dpi=150, bbox_inches="tight")
     plt.show()
     print("Saved: var_bar_comparison.png")
