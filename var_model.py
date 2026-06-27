@@ -119,7 +119,7 @@ def out_of_sample_backtest(ticker, train_start="2022-01-01", train_end="2024-06-
     print(f"Total testing days: {total_test_days}")
     print(f"VaR breaches in testing period: {breaches.values[0]}")
     print(f"Expected breach rate: {expected_breach_rate:.1f}%")
-    print(f"Acutal breach rate: {actual_breach_rate.values[0]:.2f}%")
+    print(f"Actual breach rate: {actual_breach_rate.values[0]:.2f}%")
 
     if actual_breach_rate.values[0] > expected_breach_rate*1.2:
         print("Result: Model UNDERESTIMATES risk out-of-sample")
@@ -180,9 +180,9 @@ def plot_var_comparion(aapl_results, tsla_results, jpm_results):
     fig.suptitle("Return Distributions and VaR Thresholds (2022-2026)", 
                  fontsize=13, fontweight="bold")
     stocks= [
-        (ax1, aapl_results, "steelblue", "AAPL"),
+        (ax1, aapl_results, "royalblue", "AAPL"),
         (ax2, tsla_results, "seagreen", "TSLA"),
-        (ax3, jpm_results, "darkorange", "JPM")
+        (ax3, jpm_results, "goldenrod", "JPM")
     ]
 
     for ax, results, color, ticker in stocks:
@@ -224,11 +224,11 @@ def plot_rolling_volatility(aapl_results, tsla_results, jpm_results):
     jpm_vol = jpm_results["returns"].rolling(window=30).std()*np.sqrt(252)
 
     ax.plot(aapl_vol.index, aapl_vol.values,
-            color="steelblue", linewidth=1.2, label="AAPL")
+            color="royalblue", linewidth=1.2, label="AAPL")
     ax.plot(tsla_vol.index, tsla_vol.values,
             color="seagreen", linewidth=1.2, label="TSLA")
     ax.plot(jpm_vol.index, jpm_vol.values,
-            color="darkorange", linewidth=1.2, label="JPM")
+            color="goldenrod", linewidth=1.2, label="JPM")
     
     ax.set_title("Rolling 30-Day Annualized Volatitlity (2022-2026)",
                  fontsize=13, fontweight="bold")
@@ -260,10 +260,10 @@ def plot_correlation_scatter(aapl_results, tsla_results, jpm_results):
     tsla_jpm = corr.loc["TSLA", "JPM"]
 
     ax.scatter(combined["AAPL"], combined["TSLA"],
-               alpha=0.3, color="steelblue", s=8,
+               alpha=0.3, color="royalblue", s=8,
                label=f"AAPL vs TSLA (r={aapl_tsla:.3f})")
     ax.scatter(combined["AAPL"], combined["JPM"],
-               alpha=0.3, color="darkorange", s=8,
+               alpha=0.3, color="goldenrod", s=8,
                label=f"AAPL vs JPM (r={aapl_jpm:.3f})")
     ax.scatter(combined["TSLA"], combined["JPM"],
                alpha=0.3, color="seagreen", s=8,
@@ -287,7 +287,7 @@ def plot_var_bar_comparison(aapl_results, tsla_results, jpm_results):
     Bar chart comparing all three VaR methods side by side for each stock
     """
     fig, axes = plt.subplots(1,3,figsize=(16,6))
-    fig.suptitle("VaR Comparison by Method - $10,000 Portfolio (95% Confidene)",
+    fig.suptitle("VaR Comparison by Method - $10,000 Portfolio (95% Confidence)",
                  fontsize=13, fontweight="bold")
     
     stocks = [
@@ -296,7 +296,7 @@ def plot_var_bar_comparison(aapl_results, tsla_results, jpm_results):
         (axes[2], jpm_results, "JPM")
     ]
     methods = ["Historical", "Monte Carlo\n(Normal)", "Parametric", "Monte Carlo\n(T-Dist)"]
-    colors = ["steelblue", "seagreen", "darkorange", "purple"]
+    colors = ["forestgreen", "mediumblue", "firebrick", "indigo"]
 
     for ax, results, ticker in stocks:
         values = [
@@ -339,9 +339,9 @@ def plot_distribution_comparison(aapl_results, tsla_results, jpm_results):
                  fontsize=13, fontweight="bold")
     
     stocks = [
-        (axes[0], aapl_results, "steelblue", "AAPL"),
+        (axes[0], aapl_results, "royalblue", "AAPL"),
         (axes[1], tsla_results, "seagreen", "TSLA"),
-        (axes[2], jpm_results, "darkorange", "JPM")
+        (axes[2], jpm_results, "goldenrod", "JPM")
          ]
 
     for ax, results, color, ticker in stocks:
@@ -349,7 +349,7 @@ def plot_distribution_comparison(aapl_results, tsla_results, jpm_results):
 
         ax.hist(returns, bins=50, color=color, alpha=0.5,
                 edgecolor="white", linewidth=0.5, density=True,
-                label="Acutal Returns")
+                label="Actual Returns")
         x_range = np.linspace(returns.min().values[0], returns.max().values[0], 300)
         normal_curve = stats.norm.pdf(x_range, results["mean_return"], results["std_return"])
         ax.plot(x_range, normal_curve, color="red", linewidth=2, linestyle="--",
@@ -379,8 +379,6 @@ def plot_distribution_comparison(aapl_results, tsla_results, jpm_results):
     plt.savefig("distribution_comparison.png", dpi=150, bbox_inches ="tight")
     plt.show()
     print("Saved: distribution_comparison.png")
-        
-
 
 # Call the function for the stocks
 aapl_results = calculate_var("AAPL")
@@ -402,7 +400,7 @@ plot_var_bar_comparison(aapl_results, tsla_results, jpm_results)
 plot_distribution_comparison(aapl_results, tsla_results, jpm_results)
 
 # Print the results
-print("\tRISK COMPARISON: AAPL vs TSLA vs JPM")
+print("\n\tRISK COMPARISON: AAPL vs TSLA vs JPM")
 print(f"{'Metric':<30}{'AAPL':<15}{'TSLA':<15}{'JPM':<15}")
 print("-"*75)
 print(f"{'Std Deviation (Volatility)':<30}{aapl_results['std_return']:<15.4f}{tsla_results['std_return']:<15.4f}{jpm_results['std_return']:<15.4f}")
@@ -416,18 +414,18 @@ print(f"{'Degrees of Freedom (t-dist)':<30}{aapl_results['df_t']:<15.2f}{tsla_re
 aapl_gap = abs(aapl_results['historical_var_dollar'] - aapl_results['monte_carlo_var_dollar'])
 tsla_gap = abs(tsla_results['historical_var_dollar'] - tsla_results['monte_carlo_var_dollar'])
 jpm_gap = abs(jpm_results['historical_var_dollar'] - jpm_results['monte_carlo_var_dollar'])
-print(f"\n{'Historical vs MC Gap ($)':<30}"
+print(f"{'Historical vs MC Gap ($)':<30}"
       f"{aapl_gap:15.2f}"
       f"{tsla_gap:<15.2f}"
       f"{jpm_gap:15.2f}")
 
 # Visulaization
-fig, (ax1,ax2) = plt.subplots(1, 2, figsize=(14,6))
-fig.suptitle("Value at Risk Comparison: AAPL vs TSLA (2022-2026)",
+fig, (ax1,ax2, ax3) = plt.subplots(1, 3, figsize=(14,6))
+fig.suptitle("Value at Risk Comparison: AAPL vs TSLA vs JPM (2022-2026)",
              fontsize=14, fontweight="bold")
 
 # AAPL Returns Distribution Chart
-ax1.hist(aapl_results["returns"], bins=50, color="steelblue", alpha=0.7, edgecolor="white", linewidth=0.5)
+ax1.hist(aapl_results["returns"], bins=50, color="royalblue", alpha=0.7, edgecolor="white", linewidth=0.5)
 ax1.axvline(x=aapl_results["historical_var"], color="red", linewidth=1.5, linestyle="-.", label=f"Historical VaR: {abs(aapl_results['historical_var'])*100:.2f}%")
 ax1.axvline(x=aapl_results["monte_carlo_var"], color="orange", linewidth=1.5, linestyle="--", label=f"Monte Carlo VaR: {abs(aapl_results['monte_carlo_var'])*100:.2f}%")
 ax1.axvline(x=aapl_results["parametric_var"],color = "purple", linewidth=1.5, linestyle = ":", label=f"Parametric VaR: {abs(aapl_results['parametric_var'])*100:.2f}%")
@@ -446,7 +444,17 @@ ax2.set_xlabel("Daily Returns", fontsize=10)
 ax2.set_ylabel("Frequency(Number of Days)", fontsize=10)
 ax2.legend(fontsize=9)
 
+# JPM Returns Distribution Chart
+ax3.hist(jpm_results["returns"], bins=50, color="goldenrod", alpha=0.7, edgecolor="white", linewidth=0.5)
+ax3.axvline(x=jpm_results["historical_var"], color="red", linewidth=1.5, linestyle="-.", label=f"Historical VaR: {abs(jpm_results['historical_var'])*100:.2f}%")
+ax3.axvline(x=jpm_results["monte_carlo_var"], color="orange", linewidth=1.5, linestyle="--", label=f"Monte Carlo VaR: {abs(jpm_results['monte_carlo_var'])*100:.2f}%")
+ax3.axvline(x=jpm_results["parametric_var"], color="purple", linewidth=1.5, linestyle= ":", label=f"Parametric VaR: {abs(jpm_results['parametric_var'])*100:.2f}%")
+ax3.set_title("JPM Returns Distribution", fontsize=12, fontweight="bold")
+ax3.set_xlabel("Daily Returns", fontsize=10)
+ax3.set_ylabel("Frequency(Number of Days)", fontsize=10)
+ax3.legend(fontsize=9)
+
 plt.tight_layout()
 plt.savefig("var_comparison_aapl_tsla.png", dpi=150, bbox_inches="tight")
 plt.show()
-print("\nChart saved as var_comparison_aapl_tsla.png")
+print("\nChart saved as var_comparison_aapl_tsla_jpm.png")
