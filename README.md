@@ -288,11 +288,17 @@ reliable any model built on that assumption becomes.
 - scipy — statistical functions including the normal 
   distribution and z-scores
 - Git and GitHub — version control and project hosting
-
 ---
-
 ## Visualizations
 
-![VaR Comparison](var_comparison_aapl_tsla.png)
+### VaR Method Comparison
+![VaR Bar Comparison](var_bar_comparison.png)
 
-![Advanced Risk Analysis](advanced_risk_analysis.png)
+### Return Distributions with Normal Curve Overlay
+![Return Distributions](return_distributions.png)
+
+### Rolling 30-Day Volatility
+![Rolling Volatility](rolling_volatility.png)
+
+### Pairwise Return Correlations
+![Correlation Scatter](correlation_scatter.png)
