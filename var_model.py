@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import stats
+from scipy.stats import norm
 
 # Create function to calculate VaR using both historical and Monte Carlo methods
 def calculate_var(ticker, start_date="2022-01-01", end_date="2026-01-01", 
@@ -28,6 +29,13 @@ def calculate_var(ticker, start_date="2022-01-01", end_date="2026-01-01",
     monte_carlo_var = np.percentile(simulated_returns, 100 - confidence_level * 100)
     monte_carlo_var_dollar = portfolio_value * abs(monte_carlo_var)
 
+# T-Distribution Monte Carlo Var
+    df_t, loc_t, scale_t = stats.t.fit(returns.squeeze())
+    np.random.seed(42)
+    simulated_returns_t = stats.t.rvs(df=df_t, loc=loc_t, scale=scale_t, size=num_simulations)
+    t_dist_var = np.percentile(simulated_returns_t, 100 - confidence_level* 100)
+    t_dist_var_dollar = portfolio_value * abs(t_dist_var)
+
 # Parametics VaR
     z_score = stats.norm.ppf(1-confidence_level)
     parametric_var = mean_return + (z_score * std_return)
@@ -40,12 +48,17 @@ def calculate_var(ticker, start_date="2022-01-01", end_date="2026-01-01",
         "simulated_returns": simulated_returns,
         "mean_return": mean_return,
         "std_return": std_return,
+        "df_t": df_t,
+        "loc_t": loc_t,
+        "scale_t": scale_t,
         "historical_var": historical_var,
         "historical_var_dollar": historical_var_dollar,
         "monte_carlo_var": monte_carlo_var,
         "monte_carlo_var_dollar": monte_carlo_var_dollar,
         "parametric_var": parametric_var,
-        "parametric_var_dollar": parametric_var_dollar
+        "parametric_var_dollar": parametric_var_dollar,
+        "t_dist_var": t_dist_var,
+        "t_dist_var_dollar": t_dist_var_dollar
         }
     return results
 
@@ -323,6 +336,57 @@ def plot_var_bar_comparison(aapl_results, tsla_results, jpm_results):
     plt.show()
     print("Saved: var_bar_comparison.png")
 
+def plot_distribution_comparison(aapl_results, tsla_results, jpm_results):
+    """
+    Compares normal distribution vs t-distribution overlay on actual returns for each stock
+    """
+    fig, axes = plt.subplots(1,3,figsize=(18,6))
+    fig.suptitle("Normal vs T-Distribution Fit - AAPL, TSLA, JPM (2022-2026)",
+                 fontsize=13, fontweight="bold")
+    
+    stocks = [
+        (axes[0], aapl_results, "steelblue", "AAPL"),
+        (axes[1], tsla_results, "seagreen", "TSLA"),
+        (axes[2], jpm_results, "darkorange", "JPM")
+         ]
+
+    for ax, results, color, ticker in stocks:
+        returns = results["returns"]
+
+        ax.hist(returns, bins=50, color=color, alpha=0.5,
+                edgecolor="white", linewidth=0.5, density=True,
+                label="Acutal Returns")
+        x_range = np.linspace(returns.min().values[0], returns.max().values[0], 300)
+        normal_curve = stats.norm.pdf(x_range, results["mean_return"], results["std_return"])
+        ax.plot(x_range, normal_curve, color="red", linewidth=2, linestyle="--",
+               label="Normal Distribution")
+        
+        t_curve = stats.t.pdf(x_range, df=results["df_t"], loc=results["loc_t"], scale=results["scale_t"])
+        ax.plot(x_range, t_curve, color="purple", linewidth=2, linestyle="-",
+                label=f"T-Distribution "
+                f"(df={results['df_t']:.2f})")
+        
+        ax.axvline(x=results["historical_var"], color="black", linewidth=1.2, linestyle="-.",
+                   label=f"Historical VaR: "
+                   f"{abs(results['historical_var'])*100:.2f}%")
+        ax.axvline(x=results["monte_carlo_var"], color="red", linewidth=1.2, linestyle=":",
+                   label=f"Normal VaR: "
+                   f"{abs(results['monte_carlo_var'])*100:.2f}%")
+        ax.axvline(x=results["t_dist_var"], color="purple", linewidth=1.2, linestyle=":",
+                   label=f"T-Dist VaR: "
+                   f"{abs(results['t_dist_var'])*100:.2f}%")
+        ax.set_title(f"{ticker} - Normal vs T-Distribution", fontsize=11, fontweight="bold")
+        ax.set_xlabel("Daily Return", fontsize=9)
+        ax.set_ylabel("Density", fontsize=9)
+        ax.legend(fontsize=6.5)
+        ax.tick_params(axis="both", labelsize=7)
+
+    plt.tight_layout(rect=[0,0,1,0.95])
+    plt.savefig("distribution_comparison.png", dpi=150, bbox_inches ="tight")
+    plt.show()
+    print("Saved: distribution_compairson.png")
+        
+
 
 # Call the function for the stocks
 aapl_results = calculate_var("AAPL")
@@ -341,6 +405,7 @@ plot_var_comparion(aapl_results, tsla_results, jpm_results)
 plot_rolling_volatility(aapl_results, tsla_results, jpm_results)
 plot_correlation_scatter(aapl_results, tsla_results, jpm_results)
 plot_var_bar_comparison(aapl_results, tsla_results, jpm_results)
+plot_distribution_comparison(aapl_results, tsla_results, jpm_results)
 
 # Print the results
 print("\tRISK COMPARISON: AAPL vs TSLA vs JPM")
@@ -350,6 +415,8 @@ print(f"{'Std Deviation (Volatility)':<30}{aapl_results['std_return']:<15.4f}{ts
 print(f"{'Historical VaR ($)':<30}{aapl_results['historical_var_dollar']:<15.2f}{tsla_results['historical_var_dollar']:<15.2f}{jpm_results['historical_var_dollar']:<15.2f}")
 print(f"{'Monte Carlo VaR ($)':<30}{aapl_results['monte_carlo_var_dollar']:<15.2f}{tsla_results['monte_carlo_var_dollar']:<15.2f}{jpm_results['monte_carlo_var_dollar']:<15.2f}")
 print(f"{'Parametric VaR ($)':<30}{aapl_results['parametric_var_dollar']:<15.2f}{tsla_results['parametric_var_dollar']:<15.2f}{jpm_results['parametric_var_dollar']:<15.2f}")
+print(f"{'T-Dist VaR ($)':<30}{aapl_results['t_dist_var_dollar']:<15.2f}{tsla_results['t_dist_var_dollar']:<15.2f}{jpm_results['t_dist_var_dollar']:<15.2f}")
+print(f"{'Degrees of Freedom (t-dist)':<30}{aapl_results['df_t']:<15.2f}{tsla_results['df_t']:<15.2f}{jpm_results['df_t']:<15.2f}")
 
 # Gap Calculation
 aapl_gap = abs(aapl_results['historical_var_dollar'] - aapl_results['monte_carlo_var_dollar'])
