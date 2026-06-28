@@ -172,7 +172,7 @@ def stress_test(results, portfolio_value=10000):
     print(f"than the 95% VaR estimate of ${historical_var_dollar:,.2f}")
     print(f"This illustrates why VaR alone is insufficient for tail risk management.")
 
-def plot_var_comparion(aapl_results, tsla_results, jpm_results):
+def plot_var_comparison(aapl_results, tsla_results, jpm_results):
     """
     Three histograms showing return distributions with VaR lines for each stock
     """
@@ -185,23 +185,28 @@ def plot_var_comparion(aapl_results, tsla_results, jpm_results):
         (ax3, jpm_results, "goldenrod", "JPM")
     ]
 
+    x_min = min(aapl_results["returns"].min().values[0],
+                tsla_results["returns"].min().values[0],
+                jpm_results["returns"].min().values[0])
+    x_max = max(aapl_results["returns"].max().values[0],
+                tsla_results["returns"].max().values[0],
+                jpm_results["returns"].max().values[0])
+
     for ax, results, color, ticker in stocks:
         ax.hist(results["returns"], bins=50, color=color, alpha=0.6, edgecolor="white", linewidth= 0.5,
                 density=True, label="Actual Returns")
         x_range= np.linspace(results["returns"].min().values[0],
                              results["returns"].max().values[0], 300)
+        ax.set_xlim(x_min, x_max)
         normal_curve = stats.norm.pdf(x_range, results["mean_return"], results["std_return"])
         ax.plot(x_range, normal_curve, color="red", linewidth=2,
                 label="Normal Distribution")
-        ax.axvline(x=results["historical_var"], color="darkred", linewidth=1.5, linestyle="-.",
+        ax.axvline(x=results["historical_var"], color="black", linewidth=1.2, linestyle="--",
                    label=f"Historical VaR: "
                    f"{abs(results['historical_var'])*100:.2f}%")
-        ax.axvline(x=results["monte_carlo_var"], color="orange", linewidth=1.5, linestyle="-.",
+        ax.axvline(x=results["monte_carlo_var"], color="red", linewidth=1.2, linestyle=":",
                    label=f"Monte Carlo VaR: "
                    f"{abs(results['monte_carlo_var'])*100:.2f}%")
-        ax.axvline(x=results["parametric_var"], color="purple", linewidth=1.5, linestyle="-.",
-                   label=f"Parametric VaR: "
-                   f"{abs(results['parametric_var'])*100:.2f}%")
         
         ax.set_title(f"{ticker} Return Distribution", fontsize=11, fontweight="bold")
         ax.set_xlabel("Daily Return", fontsize=9)
@@ -393,7 +398,7 @@ out_of_sample_backtest("JPM")
 stress_test(aapl_results)
 stress_test(tsla_results)
 stress_test(jpm_results)
-plot_var_comparion(aapl_results, tsla_results, jpm_results)
+plot_var_comparison(aapl_results, tsla_results, jpm_results)
 plot_rolling_volatility(aapl_results, tsla_results, jpm_results)
 plot_correlation_scatter(aapl_results, tsla_results, jpm_results)
 plot_var_bar_comparison(aapl_results, tsla_results, jpm_results)
@@ -414,10 +419,7 @@ print(f"{'Degrees of Freedom (t-dist)':<30}{aapl_results['df_t']:<15.2f}{tsla_re
 aapl_gap = abs(aapl_results['historical_var_dollar'] - aapl_results['monte_carlo_var_dollar'])
 tsla_gap = abs(tsla_results['historical_var_dollar'] - tsla_results['monte_carlo_var_dollar'])
 jpm_gap = abs(jpm_results['historical_var_dollar'] - jpm_results['monte_carlo_var_dollar'])
-print(f"{'Historical vs MC Gap ($)':<30}"
-      f"{aapl_gap:15.2f}"
-      f"{tsla_gap:<15.2f}"
-      f"{jpm_gap:15.2f}")
+print(f"{'Historical vs MC Gap ($)':<30}{aapl_gap:<15.2f}{tsla_gap:<15.2f}{jpm_gap:<15.2f}")
 
 # Visulaization
 fig, (ax1,ax2, ax3) = plt.subplots(1, 3, figsize=(14,6))
@@ -426,8 +428,8 @@ fig.suptitle("Value at Risk Comparison: AAPL vs TSLA vs JPM (2022-2026)",
 
 # AAPL Returns Distribution Chart
 ax1.hist(aapl_results["returns"], bins=50, color="royalblue", alpha=0.7, edgecolor="white", linewidth=0.5)
-ax1.axvline(x=aapl_results["historical_var"], color="red", linewidth=1.5, linestyle="-.", label=f"Historical VaR: {abs(aapl_results['historical_var'])*100:.2f}%")
-ax1.axvline(x=aapl_results["monte_carlo_var"], color="orange", linewidth=1.5, linestyle="--", label=f"Monte Carlo VaR: {abs(aapl_results['monte_carlo_var'])*100:.2f}%")
+ax1.axvline(x=aapl_results["historical_var"], color="black", linewidth=1.5, linestyle="-.", label=f"Historical VaR: {abs(aapl_results['historical_var'])*100:.2f}%")
+ax1.axvline(x=aapl_results["monte_carlo_var"], color="red", linewidth=1.5, linestyle="--", label=f"Monte Carlo VaR: {abs(aapl_results['monte_carlo_var'])*100:.2f}%")
 ax1.axvline(x=aapl_results["parametric_var"],color = "purple", linewidth=1.5, linestyle = ":", label=f"Parametric VaR: {abs(aapl_results['parametric_var'])*100:.2f}%")
 ax1.set_title("AAPL Returns Distribution", fontsize=12, fontweight="bold")
 ax1.set_xlabel("Daily Returns", fontsize=10)
@@ -436,8 +438,8 @@ ax1.legend(fontsize=9)
 
 # TSLA Returns Distribution Chart
 ax2.hist(tsla_results["returns"], bins=50, color="seagreen", alpha=0.7, edgecolor="white", linewidth=0.5)
-ax2.axvline(x=tsla_results["historical_var"], color="red", linewidth=1.5, linestyle="-.", label=f"Historical VaR: {abs(tsla_results['historical_var'])*100:.2f}%")
-ax2.axvline(x=tsla_results["monte_carlo_var"], color="orange", linewidth=1.5, linestyle="--", label=f"Monte Carlo VaR: {abs(tsla_results['monte_carlo_var'])*100:.2f}%")
+ax2.axvline(x=tsla_results["historical_var"], color="black", linewidth=1.5, linestyle="-.", label=f"Historical VaR: {abs(tsla_results['historical_var'])*100:.2f}%")
+ax2.axvline(x=tsla_results["monte_carlo_var"], color="red", linewidth=1.5, linestyle="--", label=f"Monte Carlo VaR: {abs(tsla_results['monte_carlo_var'])*100:.2f}%")
 ax2.axvline(x=tsla_results["parametric_var"], color="purple", linewidth=1.5, linestyle= ":", label=f"Parametric VaR: {abs(tsla_results['parametric_var'])*100:.2f}%")
 ax2.set_title("TSLA Returns Distribution", fontsize=12, fontweight="bold")
 ax2.set_xlabel("Daily Returns", fontsize=10)
@@ -446,8 +448,8 @@ ax2.legend(fontsize=9)
 
 # JPM Returns Distribution Chart
 ax3.hist(jpm_results["returns"], bins=50, color="goldenrod", alpha=0.7, edgecolor="white", linewidth=0.5)
-ax3.axvline(x=jpm_results["historical_var"], color="red", linewidth=1.5, linestyle="-.", label=f"Historical VaR: {abs(jpm_results['historical_var'])*100:.2f}%")
-ax3.axvline(x=jpm_results["monte_carlo_var"], color="orange", linewidth=1.5, linestyle="--", label=f"Monte Carlo VaR: {abs(jpm_results['monte_carlo_var'])*100:.2f}%")
+ax3.axvline(x=jpm_results["historical_var"], color="black", linewidth=1.5, linestyle="-.", label=f"Historical VaR: {abs(jpm_results['historical_var'])*100:.2f}%")
+ax3.axvline(x=jpm_results["monte_carlo_var"], color="red", linewidth=1.5, linestyle="--", label=f"Monte Carlo VaR: {abs(jpm_results['monte_carlo_var'])*100:.2f}%")
 ax3.axvline(x=jpm_results["parametric_var"], color="purple", linewidth=1.5, linestyle= ":", label=f"Parametric VaR: {abs(jpm_results['parametric_var'])*100:.2f}%")
 ax3.set_title("JPM Returns Distribution", fontsize=12, fontweight="bold")
 ax3.set_xlabel("Daily Returns", fontsize=10)
