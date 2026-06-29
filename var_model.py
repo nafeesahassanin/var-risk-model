@@ -8,6 +8,9 @@ import matplotlib.pyplot as plt
 from scipy import stats
 from scipy.stats import norm
 
+import time
+start_time = time.time()
+
 # Create function to calculate VaR using both historical and Monte Carlo methods
 def calculate_var(ticker, start_date="2022-01-01", end_date="2026-01-01", 
                   confidence_level=0.95, portfolio_value=10000):
@@ -385,6 +388,52 @@ def plot_distribution_comparison(aapl_results, tsla_results, jpm_results):
     plt.show()
     print("Saved: distribution_comparison.png")
 
+def print_summary(aapl_results, tsla_results, jpm_results):
+    """
+    Prints a clean summary of all key findings
+    """
+    print("\n"+"="*65)
+    print("EXECUTIVE SUMMARY")
+    print("="*65)
+
+    print("\n\tRisk Profile (Historical VaR, $10,000 portoflio)")
+    print(f" AAPL: ${aapl_results['historical_var_dollar']:.2f}"
+          f" Volatility:{aapl_results['std_return']*100:.2f}")
+    print(f" TSLA: ${tsla_results['historical_var_dollar']:.2f}"
+          f" Volatility:{tsla_results['std_return']*100:.2f}")
+    print(f" JPM: ${jpm_results['historical_var_dollar']:.2f}"
+          f" Volatility:{jpm_results['std_return']*100:.2f}")
+    
+    print("\n\tT-Distribution Degrees of Freedom")
+    print(f" AAPL: {aapl_results['df_t']:.2f} - "
+          f"{'fat tails' if aapl_results['df_t'] < 10 else 'near-normal'}")
+    print(f" TSLA: {tsla_results['df_t']:.2f} - "
+          f"{'fat tails' if tsla_results['df_t'] < 10 else 'near-normal'}")
+    print(f" JPM: {jpm_results['df_t']:.2f} - "
+          f"{'fat tails' if jpm_results['df_t'] < 10 else 'near-normal'}")
+    
+    print("\n\tPairwise Correlations")
+    combined = pd.DataFrame({
+        "AAPL": aapl_results["returns"].squeeze(),
+        "TSLA": tsla_results["returns"].squeeze(),
+        "JPM": jpm_results["returns"].squeeze()
+    })
+    corr = combined.corr()
+    print(f" AAPL vs TSLA: {corr.loc['AAPL', 'TSLA']:.3f}")
+    print(f" AAPL vs JPM: {corr.loc['AAPL', 'JPM']:.3f}")
+    print(f" TSLA vs JPM: {corr.loc['TSLA', 'JPM']:.3f}")
+
+    print("\n\tKey Findings")
+    print( "1. JPM has the lowest VaR but worst stress test results")
+    print(" - low daily volaittly does not mean low tail risk")
+    print(" 2. T-distribution VaR < Normal VaR at 95% confidence")
+    print(" - fat tails reduce moderate tail probability whie increasing extreme tail probability")
+    print(" 3. Tesla was hardest to model out-of-sample (3.54% breach reate vs 5% expected)")
+    print(" - volatilate stocks are sensitive to which market regime they're trained on")
+    print(" 4. All three methods convereged within $2 for each stock")
+    print(" - cross-validates the simulation implementation")
+    print("="*65)
+
 # Call the function for the stocks
 aapl_results = calculate_var("AAPL")
 tsla_results = calculate_var("TSLA")
@@ -403,60 +452,8 @@ plot_rolling_volatility(aapl_results, tsla_results, jpm_results)
 plot_correlation_scatter(aapl_results, tsla_results, jpm_results)
 plot_var_bar_comparison(aapl_results, tsla_results, jpm_results)
 plot_distribution_comparison(aapl_results, tsla_results, jpm_results)
+print_summary(aapl_results, tsla_results, jpm_results)
 
-# Print the results
-print("\n\tRISK COMPARISON: AAPL vs TSLA vs JPM")
-print(f"{'Metric':<30}{'AAPL':<15}{'TSLA':<15}{'JPM':<15}")
-print("-"*75)
-print(f"{'Std Deviation (Volatility)':<30}{aapl_results['std_return']:<15.4f}{tsla_results['std_return']:<15.4f}{jpm_results['std_return']:<15.4f}")
-print(f"{'Historical VaR ($)':<30}{aapl_results['historical_var_dollar']:<15.2f}{tsla_results['historical_var_dollar']:<15.2f}{jpm_results['historical_var_dollar']:<15.2f}")
-print(f"{'Monte Carlo VaR ($)':<30}{aapl_results['monte_carlo_var_dollar']:<15.2f}{tsla_results['monte_carlo_var_dollar']:<15.2f}{jpm_results['monte_carlo_var_dollar']:<15.2f}")
-print(f"{'Parametric VaR ($)':<30}{aapl_results['parametric_var_dollar']:<15.2f}{tsla_results['parametric_var_dollar']:<15.2f}{jpm_results['parametric_var_dollar']:<15.2f}")
-print(f"{'T-Dist VaR ($)':<30}{aapl_results['t_dist_var_dollar']:<15.2f}{tsla_results['t_dist_var_dollar']:<15.2f}{jpm_results['t_dist_var_dollar']:<15.2f}")
-print(f"{'Degrees of Freedom (t-dist)':<30}{aapl_results['df_t']:<15.2f}{tsla_results['df_t']:<15.2f}{jpm_results['df_t']:<15.2f}")
+end_time= time.time()
+print(f"\nTotal runtime: {end_time - start_time:.2f} seconds")
 
-# Gap Calculation
-aapl_gap = abs(aapl_results['historical_var_dollar'] - aapl_results['monte_carlo_var_dollar'])
-tsla_gap = abs(tsla_results['historical_var_dollar'] - tsla_results['monte_carlo_var_dollar'])
-jpm_gap = abs(jpm_results['historical_var_dollar'] - jpm_results['monte_carlo_var_dollar'])
-print(f"{'Historical vs MC Gap ($)':<30}{aapl_gap:<15.2f}{tsla_gap:<15.2f}{jpm_gap:<15.2f}")
-
-# Visulaization
-fig, (ax1,ax2, ax3) = plt.subplots(1, 3, figsize=(14,6))
-fig.suptitle("Value at Risk Comparison: AAPL vs TSLA vs JPM (2022-2026)",
-             fontsize=14, fontweight="bold")
-
-# AAPL Returns Distribution Chart
-ax1.hist(aapl_results["returns"], bins=50, color="royalblue", alpha=0.7, edgecolor="white", linewidth=0.5)
-ax1.axvline(x=aapl_results["historical_var"], color="black", linewidth=1.5, linestyle="-.", label=f"Historical VaR: {abs(aapl_results['historical_var'])*100:.2f}%")
-ax1.axvline(x=aapl_results["monte_carlo_var"], color="red", linewidth=1.5, linestyle="--", label=f"Monte Carlo VaR: {abs(aapl_results['monte_carlo_var'])*100:.2f}%")
-ax1.axvline(x=aapl_results["parametric_var"],color = "purple", linewidth=1.5, linestyle = ":", label=f"Parametric VaR: {abs(aapl_results['parametric_var'])*100:.2f}%")
-ax1.set_title("AAPL Returns Distribution", fontsize=12, fontweight="bold")
-ax1.set_xlabel("Daily Returns", fontsize=10)
-ax1.set_ylabel("Frequency(Number of Days)", fontsize=10)
-ax1.legend(fontsize=9)
-
-# TSLA Returns Distribution Chart
-ax2.hist(tsla_results["returns"], bins=50, color="seagreen", alpha=0.7, edgecolor="white", linewidth=0.5)
-ax2.axvline(x=tsla_results["historical_var"], color="black", linewidth=1.5, linestyle="-.", label=f"Historical VaR: {abs(tsla_results['historical_var'])*100:.2f}%")
-ax2.axvline(x=tsla_results["monte_carlo_var"], color="red", linewidth=1.5, linestyle="--", label=f"Monte Carlo VaR: {abs(tsla_results['monte_carlo_var'])*100:.2f}%")
-ax2.axvline(x=tsla_results["parametric_var"], color="purple", linewidth=1.5, linestyle= ":", label=f"Parametric VaR: {abs(tsla_results['parametric_var'])*100:.2f}%")
-ax2.set_title("TSLA Returns Distribution", fontsize=12, fontweight="bold")
-ax2.set_xlabel("Daily Returns", fontsize=10)
-ax2.set_ylabel("Frequency(Number of Days)", fontsize=10)
-ax2.legend(fontsize=9)
-
-# JPM Returns Distribution Chart
-ax3.hist(jpm_results["returns"], bins=50, color="goldenrod", alpha=0.7, edgecolor="white", linewidth=0.5)
-ax3.axvline(x=jpm_results["historical_var"], color="black", linewidth=1.5, linestyle="-.", label=f"Historical VaR: {abs(jpm_results['historical_var'])*100:.2f}%")
-ax3.axvline(x=jpm_results["monte_carlo_var"], color="red", linewidth=1.5, linestyle="--", label=f"Monte Carlo VaR: {abs(jpm_results['monte_carlo_var'])*100:.2f}%")
-ax3.axvline(x=jpm_results["parametric_var"], color="purple", linewidth=1.5, linestyle= ":", label=f"Parametric VaR: {abs(jpm_results['parametric_var'])*100:.2f}%")
-ax3.set_title("JPM Returns Distribution", fontsize=12, fontweight="bold")
-ax3.set_xlabel("Daily Returns", fontsize=10)
-ax3.set_ylabel("Frequency(Number of Days)", fontsize=10)
-ax3.legend(fontsize=9)
-
-plt.tight_layout()
-plt.savefig("var_comparison_aapl_tsla.png", dpi=150, bbox_inches="tight")
-plt.show()
-print("\nChart saved as var_comparison_aapl_tsla_jpm.png")
