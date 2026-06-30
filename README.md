@@ -2,10 +2,11 @@
 
 This project builds a Value at Risk (VaR) model from scratch using 
 real stock market data for three stocks with very different risk 
-profiles: Apple (AAPL), Tesla (TSLA), and JPMorgan Chase (JPM). 
-It started as a single-stock risk estimate and grew into a more 
-complete analysis covering three estimation methods, two rounds of 
-backtesting, stress testing, and correlation analysis.
+profiles: Apple (AAPL), Tesla (TSLA), and JPMorgan Chase (JPM). It 
+started as a single-stock risk estimate and grew into a complete 
+analysis covering four estimation methods, two rounds of 
+backtesting, stress testing, distribution fitting, and correlation 
+analysis. 
 
 ---
 
@@ -25,41 +26,42 @@ exceed that threshold.
 
 ## Why These Three Stocks?
 
-The three stocks were chosen deliberately to represent three 
-different types of risk:
+The three stocks were chosen to represent genuinely different types 
+of risk:
 
-- **Apple (AAPL)** — large-cap tech, relatively stable, 
-  one of the most widely held stocks in the world
-- **Tesla (TSLA)** — high-growth tech, known for dramatic 
-  price swings, heavily driven by company-specific news
-- **JPMorgan Chase (JPM)** — one of the largest banks in 
-  the world, driven by interest rates, credit markets
+- **Apple (AAPL)** — large-cap tech, relatively stable, one of 
+  the most widely held stocks in the world
+- **Tesla (TSLA)** — high-growth tech, known for dramatic price 
+  swings driven heavily by company-specific news
+- **JPMorgan Chase (JPM)** — one of the largest banks in the 
+  world, driven by interest rates and financial system health 
 
-Comparing all three shows how the same risk framework behaves 
-across different types of assets.
+Comparing all three shows how the same risk framework behaves across 
+different asset types.
 
 ---
 
-## The Three Methods
+## The Four Methods
 
 ### 1. Historical VaR
-Takes actual past daily returns, sorts them from worst to best, 
-and finds the value at the 5th percentile. 
+Uses actual past daily returns to find the 5th percentile of 
+historical losses. What happened over the four-year sample period (2022–2026).
 
-### 2. Monte Carlo VaR
+### 2. Monte Carlo VaR (Normal Distribution)
 Generates 10,000 simulated daily returns drawn from a normal 
-distribution, using each stock's real mean return and standard 
-deviation as inputs. The 5th percentile of those simulated 
-returns becomes the risk estimate. This method assumes returns 
-follow a bell curve.
+distribution, using each stock's real mean and standard deviation. 
+The 5th percentile of those simulated returns becomes the risk 
+estimate.
 
 ### 3. Parametric VaR
-Calculates VaR directly using a mathematical formula rather than 
-simulation. Applies the z-score for 95% confidence (1.645) to 
-compute the result in one step, skipping the simulation entirely. 
-Added primarily as a cross-validation check — since it uses the 
-same normal distribution assumption as Monte Carlo, the two 
-results should converge closely.
+Calculates VaR using a direct formula instead of simulation, applying 
+the z-score for 95% confidence (1.645). Added mainly as a 
+cross-validation check.
+
+### 4. Monte Carlo VaR (T-Distribution)
+The normal distribution assumes extreme days are rare. A t-distribution has heavier tails, 
+controlled by a parameter called degrees of freedom — lower values mean fatter 
+tails and more extreme-event probability.
 
 ---
 
@@ -69,27 +71,22 @@ results should converge closely.
 
 | Metric | AAPL | TSLA | JPM |
 |---|---|---|---|
-| Daily Volatility (Std Dev) | 1.80% | 3.89% | 1.57% |
+| Daily Volatility | 1.80% | 3.89% | 1.57% |
 | Historical VaR (95%) | $287.39 | $611.51 | $237.38 |
-| Monte Carlo VaR (95%) | $291.54 | $635.79 | $250.90 |
-| Parametric VaR (95%) | $289.74 | $631.89 | $249.33 |
-| Historical vs MC Gap | $4.16 | $24.28 | $13.53 |
+| Monte Carlo VaR (Normal) | $291.54 | $635.79 | $250.90 |
+| Parametric VaR | $289.74 | $631.89 | $249.33 |
+| Monte Carlo VaR (T-Dist) | $255.26 | $607.99 | $216.68 |
+| Degrees of Freedom (t-dist) | 3.53 | 5.25 | 3.58 |
 
+JPMorgan is the least volatile of the three day-to-day, with the 
+lowest VaR across every method. 
 
-**JPMorgan is the least volatile stock day-to-day** at 1.57% 
-standard deviation, even lower than Apple's 1.80%. Its $237.38 
-Historical VaR is the lowest of the three, which at first glance 
-makes it look like the safest investment. 
+All three degrees of freedom values are well below 10, meaning all 
+three stocks have noticeably fatter tails than a normal distribution 
+would predict.
 
-**Tesla's gap between Historical and Monte Carlo VaR is the 
-largest** — $24.28 compared to $4.16 for Apple and $13.53 for 
-JPMorgan. Tesla's volatility is roughly double Apple's, but its 
-Historical vs Monte Carlo gap is about six times larger. This 
-points to the fat tail problem: volatile stocks have more extreme 
-days in reality than a normal distribution predicts. JPMorgan 
-sits in the middle, which makes sense — it's more stable than 
-Tesla but subject to its own category of tail risk tied to 
-financial crises.
+The t-distribution VaR came out **lower** than the normal distribution VaR 
+for every stock at 95% confidence. 
 
 ---
 
@@ -97,8 +94,8 @@ financial crises.
 
 ### In-Sample Backtest
 
-Tests whether the model correctly predicted breach frequency 
-against the same data it was built from.
+Checks whether the model's predicted breach rate matches what 
+actually happened in the same data it was built from.
 
 | Stock | Breaches | Actual Rate | Expected Rate | Result |
 |---|---|---|---|---|
@@ -106,17 +103,16 @@ against the same data it was built from.
 | TSLA | 51/1002 | 5.09% | 5.0% | Well-calibrated |
 | JPM | 51/1002 | 5.09% | 5.0% | Well-calibrated |
 
-All three came back almost exactly at 5% — which looks 
-reassuring but has a known limitation. Historical VaR is 
-defined as the 5th percentile of the same dataset being tested, 
-so it will almost always produce a result near 5% by 
+All three landed almost exactly at 5%. This test has a known 
+limitation though — Historical VaR is defined as the 5th percentile 
+of the same data being tested, so it's expected to land near 5% by 
 construction.
 
 ### Out-of-Sample Backtest
 
-Splits the data into two separate windows. The VaR threshold 
-is calculated using 2022–2024 data only, then tested against 
-2024–2026 data the model has never seen.
+Splits the data into two windows. I used 2022–2024 to calculate the 
+VaR threshold, then tested that threshold against 2024–2026 data the 
+model had never seen.
 
 | Metric | AAPL | TSLA | JPM |
 |---|---|---|---|
@@ -126,28 +122,16 @@ is calculated using 2022–2024 data only, then tested against
 | Expected Breach Rate | 5.0% | 5.0% | 5.0% |
 | Result | Well-calibrated | Overestimates risk | Well-calibrated |
 
-Apple held up best — its breach rate of 4.80% stayed very 
-close to the expected 5%, suggesting Apple's risk profile 
-was relatively consistent across both periods.
-
-Tesla overestimated risk — only 3.54% of testing days breached 
-the threshold instead of the expected 5%. Its training period 
-was turbulent, so a model built on 
-that data predicted more extreme days than the comparatively 
-calmer 2024–2026 period actually delivered.
-
-JPMorgan was slightly conservative at 4.04% — its 2022 
-training period included significant interest rate volatility 
-specific to banks, which eased in the testing period.
+Apple held up best out-of-sample. Tesla overestimated risk — its 
+training period (especially 2022) was unusually turbulent, so the 
+model expected more bad days than the calmer 2024–2026 period 
+actually delivered. JPMorgan was slightly conservative, which fits 
+with 2022 being a difficult year for bank stocks specifically due to 
+aggressive interest rate hikes.
 
 ---
 
 ## Stress Testing
-
-VaR describes risk under normal market conditions. Stress 
-testing asks what happens during actual crises — applying 
-real historical shock scenarios to the portfolio and comparing 
-those losses directly to the VaR estimate.
 
 ### AAPL (VaR baseline: $287.39)
 
@@ -158,8 +142,6 @@ those losses directly to the VaR estimate.
 | 2008 Financial Crisis (Oct 15, 2008) | -9.0% | $900.00 | 213% worse |
 | Black Monday (Oct 19, 1987) | -22.6% | $2,260.00 | 686% worse |
 
-Crisis losses range from **2.8x to 7.9x** larger than VaR.
-
 ### TSLA (VaR baseline: $611.51)
 
 | Scenario | Shock | Loss | vs VaR |
@@ -168,8 +150,6 @@ Crisis losses range from **2.8x to 7.9x** larger than VaR.
 | COVID-19 Crash (Mar 16, 2020) | -12.0% | $1,200.00 | 96% worse |
 | 2008 Financial Crisis (Oct 15, 2008) | -9.0% | $900.00 | 47% worse |
 | Black Monday (Oct 19, 1987) | -22.6% | $2,260.00 | 270% worse |
-
-Crisis losses range from **1.3x to 3.7x** larger than VaR.
 
 ### JPM (VaR baseline: $237.38)
 
@@ -180,7 +160,18 @@ Crisis losses range from **1.3x to 3.7x** larger than VaR.
 | 2008 Financial Crisis (Oct 15, 2008) | -9.0% | $900.00 | 279% worse |
 | Black Monday (Oct 19, 1987) | -22.6% | $2,260.00 | 852% worse |
 
-Crisis losses range from **3.4x to 9.5x** larger than VaR.
+### The Most Important Finding
+
+JPMorgan had the lowest day-to-day VaR of the three stocks, but the 
+worst stress test results. The Black Monday scenario produces losses 
+852% worse than its VaR estimate, compared to 686% for Apple and 
+270% for Tesla.
+
+Main takeaway: **low day-to-day volatility does not mean low tail risk.** 
+JPMorgan's biggest risks are tied to financial system stress — banking crises, credit defaults, 
+liquidity shocks — events that don't show up in calm daily returns 
+but hit hard during systemic failures. The 2008 scenario matters 
+most here since it was specifically a banking crisis. 
 
 ---
 
@@ -192,89 +183,45 @@ Crisis losses range from **3.4x to 9.5x** larger than VaR.
 | AAPL vs JPM | 0.395 |
 | TSLA vs JPM | 0.353 |
 
-The two tech stocks are most correlated with each other 
-(0.507), while JPMorgan shows lower correlations with both 
-Apple (0.395) and Tesla (0.353). This makes sense — Apple 
-and Tesla are both driven by Nasdaq sentiment, interest 
-rate sensitivity for growth stocks, and tech sector trends. 
-JPMorgan moves on fundamentally different factors: interest 
-rate spreads, loan performance, and financial system health.
-
-From a portfolio perspective, adding JPMorgan provides more 
-genuine diversification than adding a second tech stock 
-would. During the 2022 rate hike cycle, rising rates hurt 
-Apple and Tesla's valuations while simultaneously benefiting 
-JPMorgan's net interest margins — exactly the kind of 
-partial hedge that lower correlation represents in practice.
-
----
-
-## Volatility Over Time
-
-The rolling 30-day volatility chart shows how each stock's 
-risk changed over the four-year period rather than treating 
-it as constant. Key observations:
-
-- Tesla's volatility was consistently the highest throughout, 
-  with dramatic swings between calm and turbulent periods
-- Apple and JPMorgan showed more stable, lower volatility 
-  profiles across most of the period
-- All three stocks spiked sharply in early 2025 during the 
-  tariff-driven market selloff — the same period that 
-  produced each stock's worst single day in the dataset
-- JPMorgan's volatility was notably low and stable for most 
-  of the period, which makes the stress test finding even 
-  more striking — calm daily behavior masked significant 
-  vulnerability to crisis scenarios
-
----
-
-## Return Distribution Analysis
-
-Overlaying a theoretical normal curve on each stock's actual 
-return histogram makes the fat tail problem visually clear. 
-In the tails of each chart — the far left and right edges 
-where extreme days live — the histogram bars extend above 
-the normal curve. Real extreme days happen more often than 
-a bell curve predicts.
-
-This effect is most pronounced for Tesla, consistent with 
-its larger Historical vs Monte Carlo VaR gap ($24.28 versus 
-$4.16 for Apple and $13.53 for JPMorgan). The more a stock 
-deviates from normal distribution behavior, the less 
-reliable any model built on that assumption becomes.
+The two tech stocks are most correlated with each other, while 
+JPMorgan moves more independently from both. During the 2022 rate hike cycle, 
+rising rates hurt Apple and Tesla's valuations while actually helping 
+JPMorgan's net interest income.
 
 ---
 
 ## Limitations
 
-- VaR identifies the loss threshold but says nothing about 
-  how large losses get beyond it. Conditional VaR (CVaR) 
-  addresses this by measuring the average loss on the days 
-  VaR is actually breached
-- Monte Carlo and Parametric VaR both assume normally 
-  distributed returns, which underestimates tail risk — 
-  the fat tail charts make this visible
-- The in-sample backtest is somewhat circular and should 
-  always be read alongside the out-of-sample results
-- The model currently treats each stock independently 
-  and does not account for the correlation effects between 
-  them in a combined portfolio — the next planned extension
+- VaR identifies a loss threshold but says nothing about how bad 
+  losses get beyond it. Conditional VaR (CVaR) would measure the 
+  average loss on the days VaR is actually breached
+- The t-distribution comparison was only run at 95% confidence — 
+  the fat-tail advantage would likely be clearer at 99% or higher
+- The in-sample backtest is somewhat circular by construction and 
+  should always be read next to the out-of-sample results
+- The model treats each stock independently and doesn't yet account 
+  for the correlation effects in a real combined portfolio
 
 ---
 
-## What I Plan to Build Next
+## Next Steps
 
-- **Multi-asset portfolio VaR** using a covariance matrix 
-  to formally model how the three pairwise correlations 
-  (0.507, 0.395, 0.353) reduce combined portfolio risk
-- **Student's t-distribution** in Monte Carlo to better 
-  capture fat tails instead of assuming a normal distribution
-- **Conditional VaR (CVaR)** to measure the average 
-  severity of losses on the days VaR is breached, not 
-  just the threshold itself
-- **Rolling-window VaR** so the model adapts to changing 
-  market conditions rather than assuming constant volatility
+- Multi-asset portfolio VaR using a covariance matrix, built on the 
+  three correlation numbers above
+- A confidence level comparison (90%, 95%, 99%, 99.9%) to directly 
+  show where the t-distribution's fat-tail advantage becomes visible
+- Conditional VaR (CVaR) to measure severity, not just threshold
+
+---
+
+## How to Run
+
+1. Clone the repository
+2. Install dependencies:
+   pip install yfinance pandas numpy matplotlib scipy
+3. Run the model:
+   var_model.py
+4. Charts save automatically to the project folder
 
 ---
 
@@ -285,17 +232,22 @@ reliable any model built on that assumption becomes.
 - pandas — data handling and processing
 - NumPy — math and simulation
 - matplotlib — all charts and visualizations
-- scipy — statistical functions including the normal 
-  distribution and z-scores
+- scipy — statistical functions, including the normal and 
+  t-distributions
 - Git and GitHub — version control and project hosting
+
 ---
+
 ## Visualizations
 
 ### VaR Method Comparison
 ![VaR Bar Comparison](var_bar_comparison.png)
 
-### Return Distributions with Normal Curve Overlay
+### Return Distributions with VaR Thresholds
 ![Return Distributions](return_distributions.png)
+
+### Normal vs T-Distribution Fit
+![Distribution Comparison](distribution_comparison.png)
 
 ### Rolling 30-Day Volatility
 ![Rolling Volatility](rolling_volatility.png)
